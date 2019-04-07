@@ -1,12 +1,3 @@
-// For customers, get all items, SHOW id, name, dept, and price from db 
-  // only show poducts that has qty > 0
-// prompt user: which products would you like to purchase? How many?
-// Check if qyt is > user qty
-// if it is, update the stock_qty -= user qty
-// feedback: product_name, qty, and grand total
-// prompt user: would you like to purchase anything else? Or goodbye
-// if not enough qty, please select anthor product or a smaller qty
-// start from customers again 
 const Table = require('cli-table');
 const inquirer = require('inquirer');
 
@@ -14,7 +5,7 @@ class Customer {
   getItems(pool) {
     pool.query(`SELECT * FROM products WHERE stock_qty > 0`, (err, results) => {
       if(err) console.log('Something went wrong...');
-      this.displayProductList(results.rows, pool);
+      this.diplayProductList(results.rows, pool);
     });
   }
   displayProductList(inventory, pool) {
