@@ -4,7 +4,8 @@
 
 const inquirer = require('inquirer');
 const { Pool } = require('pg');
-const Customer = require('./customer');
+const Customer = require('./Customer');
+const Manager = require('./Manager');
 
 const pool = new Pool({
   uesr: 'postgres',
@@ -25,11 +26,12 @@ inquirer
   .then(answers => {
     switch(answers.userRole) {
       case 'Customer': 
-        let customer = new Customer;
+        const customer = new Customer;
         customer.getItems(pool);
       break;
       case 'Manager': 
-        console.log('Sorry Manager login unavailable.');
+        const manager = new Manager;
+        manager.displayOptions(pool);
       break;
       case 'Supervisor': 
         console.log('Sorry Supervisor login unavailable.');
@@ -39,3 +41,4 @@ inquirer
         pool.end();
     }
   });
+
