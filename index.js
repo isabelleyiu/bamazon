@@ -27,11 +27,11 @@ inquirer
     switch(answers.userRole) {
       case 'Customer': 
         const customer = new Customer;
-        customer.getItems(pool);
+        customer.getProducts(pool);
       break;
       case 'Manager': 
         const manager = new Manager;
-        manager.getInventory(pool);
+        manager.login(pool);
       break;
       case 'Supervisor': 
         console.log('Sorry Supervisor login unavailable.');

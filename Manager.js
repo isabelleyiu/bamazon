@@ -2,6 +2,31 @@ const Table = require('cli-table');
 const inquirer = require('inquirer');
 
 class Manager {
+  login(pool) {
+    inquirer
+      .prompt([
+        {
+          type: 'password',
+          message: 'Enter a masked password',
+          name: 'password',
+          mask: '*',
+          validate: value => {
+            if (/\w/.test(value) && /\d/.test(value)) {
+              return true;
+            }
+            return 'Password need to have at least a letter and a number';
+          }          
+        }
+      ])
+        .then(answers => {
+          if(answers.password) {
+            this.getInventory(pool);
+            console.log(`You're successfully login as manager.`);
+          } else {
+            console.log('Goodbye');
+          }
+        });
+  }
   getInventory(pool) {
     pool.query(`SELECT * FROM products ORDER BY stock_qty ASC`, (err, results) => {
       if(err) console.log('Something went wrong...');
@@ -13,22 +38,24 @@ class Manager {
       .prompt({
         type: 'rawlist',
         name: 'action',
-        choices: ['View Products For Sale', 'View Low Inventory', 'Restock Inventory', 'Add New Product'],
+        choices: ['View Products For Sale', 'View Low Inventory', 'Restock Inventory', 'Add New Product', 'Log Out'],
         message: 'Select an action'
-      })
-      .then(answers => {
-        if(answers.action === 'View Products For Sale') {
-          this.displayInventory(inventory);
-        } else if(answers.action === 'View Low Inventory') {
-          this.viewLowInventory(inventory);
-        } else if(answers.action === 'Restock Inventory') {
-          this.restockInventory(inventory, pool);
-        } else if(answers.action === 'Add New Product') {
-          this.addNewProduct(inventory, pool);
-        }
-      });
+        })
+        .then(answers => {
+          if(answers.action === 'View Products For Sale') {
+            this.displayInventory(inventory, pool);
+          } else if(answers.action === 'View Low Inventory') {
+            this.viewLowInventory(inventory, pool);
+          } else if(answers.action === 'Restock Inventory') {
+            this.restockInventory(inventory, pool);
+          } else if(answers.action === 'Add New Product') {
+            this.addNewProduct(inventory, pool);
+          } else if(answers.action === 'Log Out') {
+            console.log('Goodbye.')
+          }
+        });
   }
-  displayInventory(inventory) {
+  displayInventory(inventory, pool) {
     const table = new Table({
       head: ['id', 'Product Name', 'Department', 'Price', 'Quantity']
     });
@@ -41,10 +68,12 @@ class Manager {
     console.log('\n');
     console.log(table.toString());
     console.log('\n');
+
+    this.viewLowInventory(inventory, pool);
   }
-  viewLowInventory(inventory) {
+  viewLowInventory(inventory, pool) {
     const lowStock = inventory.filter(item => item.stock_qty <= 10);
-    this.displayInventory(lowStock);
+    this.restockInventory(inventory, pool);
   }
   restockInventory(inventory, pool) {
     const questions = [
@@ -78,8 +107,11 @@ class Manager {
       inquirer
       .prompt(questions)
         .then(answers => {
+
           const selectedItem = inventory.filter(item => item.product_name === answers.product)[0];
+
           let newQty = selectedItem.stock_qty + parseInt(answers.qty);
+
           pool.query(`UPDATE products SET stock_qty = $1 WHERE product_name = $2 RETURNING *`, 
             [newQty, selectedItem.product_name], 
             (err, results) => {
@@ -88,7 +120,9 @@ class Manager {
             });
           if(answers.askAgain) {
             ask();
-          } 
+          } else {
+            this.displayOptions(inventory, pool);
+          }
         });
     }
     ask();
@@ -132,13 +166,16 @@ class Manager {
       .prompt(questions)
         .then(answers => {
           pool.query(`INSERT INTO products (product_name, dept_name, price, stock_qty)
-          VALUES($1, $2, $3, $4);`, 
+          VALUES($1, $2, $3, $4) RETURNING *;`, 
             [answers.product, answers.department, answers.price, answers.qty], 
             (err, results) => {
-              if(err) console.log('Something went wrong...');
-              console.log(`${answers.qty} units of ${answers.product} has been added to ${answers.department} for $${answers.price} each`);
+              if(err) {
+                console.log('Something went wrong...');
+              } else {
+                this.displayInventory(results.rows);
+                console.log(`${answers.qty} units of ${answers.product} has been added to ${answers.department} for $${answers.price} each`);
+              }
             });
-          this.displayInventory(inventory)
         });
   }
 }
