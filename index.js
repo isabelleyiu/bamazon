@@ -31,7 +31,7 @@ inquirer
       break;
       case 'Manager': 
         const manager = new Manager;
-        manager.displayOptions(pool);
+        manager.getInventory(pool);
       break;
       case 'Supervisor': 
         console.log('Sorry Supervisor login unavailable.');
