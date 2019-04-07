@@ -2,10 +2,10 @@ const Table = require('cli-table');
 const inquirer = require('inquirer');
 
 class Customer {
-  getItems(pool) {
-    pool.query(`SELECT * FROM products WHERE stock_qty > 0`, (err, results) => {
+  getProducts(pool) {
+    pool.query(`SELECT * FROM products WHERE stock_qty > 0 ORDER BY dept_name ASC`, (err, results) => {
       if(err) console.log('Something went wrong...');
-      this.diplayProductList(results.rows, pool);
+      this.displayProductList(results.rows, pool);
     });
   }
   displayProductList(inventory, pool) {
@@ -60,12 +60,13 @@ class Customer {
       .prompt(questions)
         .then(answers => {
           const selectedProduct = inventory.filter(stock => stock.product_name === answers.product)[0];
+
           if(answers.qty <= selectedProduct.stock_qty) {
             selectedProduct.selectedQty = parseInt(answers.qty);
             shoppingCart.push(selectedProduct);
-            console.log(`Your item ${answers.product} has been added to the shopping cart!`);
+            console.log(`${answers.qty} units of ${answers.product} has been added to your shopping cart!`);
           } else {
-            console.log(`We are sorry. We don't have enough ${answers.product} in stock. Please select a smaller quantity or purchase another item`);
+            console.log(`We are sorry. We don't have enough ${answers.product} in stock to fulfill your order.\nPlease select a quantity smaller than ${selectedProduct.stock_qty} or purchase another item.`);
           }
           if(answers.askAgain) {
             ask();
@@ -82,15 +83,19 @@ class Customer {
     });
 
     let grandTotal = 0;
+
     shoppingCart.forEach(item => {
       let itemTotal = item.price * item.selectedQty;
       grandTotal += itemTotal;
+
       table.push([item.product_name, item.selectedQty, item.price, itemTotal]);
 
       let newQty = item.stock_qty - item.selectedQty;
-      pool.query(`UPDATE products SET stock_qty = $1 WHERE product_name = $2 RETURNING *`, [newQty, item.product_name],  (err, results) => {
+      pool.query(`UPDATE products SET stock_qty = $1 WHERE product_name = $2 RETURNING *`, 
+        [newQty, item.product_name],  
+        (err, results) => {
         if(err) console.log('Something went wrong...');
-        console.log(`For manager/supervisor's eyes only: ${item.product_name} quantity was ${item.stock_qty}, now is ${newQty}.`)
+        // console.log(`For manager/supervisor's eyes only: ${item.product_name} quantity was ${item.stock_qty}, now is ${newQty}.`)
       });
     });
 
